@@ -32,23 +32,41 @@ module Text.Reformat.Render
 
 import Text.Reformat.Types (Reformat(..), Value(..))
 import Text.Parsec
+import Text.Printf
 
 
 data Render = Text String -- ^ Plain text
             | Var  String String -- ^ variable with name and format
+            | Nil
+            deriving (Show,Eq)
 
-parserVar :: Stream String m => ParsecT String () m Render
+parserVar :: Stream String m Char => ParsecT String () m [Render]
 parserVar = do
   char '$'
   char '{'
   spaces
   varName <- many1 (lower <|> digit <|> char '_' <|> char '-')
   spaces
-  char ':'
-  spaces
-  format  <- many1 $ oneOf "cdoxXbufFgGeEs+-0123456789."
+  format <- option "" $ do
+    char ':'
+    spaces
+    many1 $ oneOf "cdoxXbufFgGeEs+-0123456789."
   spaces
   char '}'
-  return $ Var varName spaces
+  (Var varName format:) <$> parserRender
 
-parserText :: 
+parserText :: Stream String m Char => ParsecT String () m [Render]
+parserText = do
+  text  <- many1 $ noneOf "$"
+  (Text text:) <$> parserRender
+
+parserD :: Stream String m Char => ParsecT String () m [Render]
+parserD = string "$$" >> (Text "$":) <$> parserRender
+
+parserEOF :: Stream String m Char => ParsecT String () m [Render]
+parserEOF = eof >> return [Nil]
+
+
+parserRender :: Stream String m Char => ParsecT String () m [Render]
+parserRender = try parserEOF <|> try parserText <|> try parserD <|> parserVar
+
