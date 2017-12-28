@@ -26,18 +26,28 @@ Portablility: unknown
 
 -}
 
-{-# LANGUAGE FunctionalDependences #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Text.Reformat.Types
   ( Reformat(..)
+  , Value(..)
   ) where
 
-import Text.Parsec (ParsecT(..))
+import Text.Parsec (ParsecT)
+
+-- | to hold the values
+data Value = I Integer -- ^ integer
+           | R Double -- ^ double
+           | S String -- ^ string
+           | N -- nothing
+           deriving (Show,Eq)
 
 -- | The class of reformat to parser and reformat the string
-class Reformat t s | t -> s where
-  parser :: Monad m => ParsecT s () m t
-  renderPair :: t -> [(s,s)]
+class Reformat t where
+  type Str t
+  -- | parser to parse the sting
+  parser :: Monad m => ParsecT (Str t) () m t
+  -- | look at value via name (in string) 
+  renderPair :: t -> (Str t) -> Value
 
 

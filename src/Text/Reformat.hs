@@ -5,7 +5,7 @@
    the Free Software Foundation, either version 3 or the License,
    or (at your option) any later version.
 
-   Yu is distributed in the hope that it will be useful,
+   Reformat is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU General Public License for more details.
@@ -26,3 +26,12 @@ Portablility: unknown
 
 -}
 
+module Text.Reformat
+  ( module Text.Reformat.Types
+  , module Text.Reformat.Render
+  , module Text.Reformat.Parsec
+  ) where
+
+import Text.Reformat.Types
+import Text.Reformat.Render
+import Text.Reformat.Parsec

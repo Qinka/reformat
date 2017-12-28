@@ -26,11 +26,19 @@ Portablility: unknown
 
 -}
 
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TypeFamilies #-}
+
 module Text.Reformat.Parsec
-  (
+  ( parsingToReformat
   ) where
 
-import Text.Reformat.Types (Reformat(..), ParserError, SourceName)
+import Text.Reformat.Types (Reformat(..))
+import Text.Parsec (ParseError, SourceName,runParserT,Stream)
 
-parsingToReformat :: Reformat t s => SourceName -> s -> m (Either ParserError t)
-parsingToReformat src str = runParserT parser () src str
+-- | Parse the string with the parser. The parser is provided with instance of @Reformat@.
+parsingToReformat :: (Stream (Str t) m Char, Reformat t)
+                  => SourceName -- ^ name of input source
+                  -> (Str t) -- ^ string of input
+                  -> m (Either ParseError t) -- ^ output
+parsingToReformat = runParserT parser ()

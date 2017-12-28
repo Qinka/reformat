@@ -26,8 +26,11 @@ Portablility: unknown
 
 -}
 
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TypeFamilies #-}
+
 module Text.Reformat.Render
-  (
+  ( renderFromReformat
   ) where
 
 import Text.Reformat.Types (Reformat(..), Value(..))
@@ -40,33 +43,48 @@ data Render = Text String -- ^ Plain text
             | Nil
             deriving (Show,Eq)
 
+-- | parser of variable
 parserVar :: Stream String m Char => ParsecT String () m [Render]
 parserVar = do
-  char '$'
-  char '{'
-  spaces
+  char '$' >> char '{' >>  spaces
   varName <- many1 (lower <|> digit <|> char '_' <|> char '-')
-  spaces
-  format <- option "" $ do
-    char ':'
-    spaces
-    many1 $ oneOf "cdoxXbufFgGeEs+-0123456789."
-  spaces
-  char '}'
-  (Var varName format:) <$> parserRender
+  spaces >> char ':' >>  spaces
+  format <-  many1 $ oneOf "cdoxXbufFgGeEs+-0123456789."
+  spaces >>  char '}'
+  (Var varName ('%':format):) <$> parserRender
 
+-- | parser of text
 parserText :: Stream String m Char => ParsecT String () m [Render]
 parserText = do
   text  <- many1 $ noneOf "$"
   (Text text:) <$> parserRender
 
+-- | parser of dollar
 parserD :: Stream String m Char => ParsecT String () m [Render]
 parserD = string "$$" >> (Text "$":) <$> parserRender
 
+-- | parser of string's EOF
 parserEOF :: Stream String m Char => ParsecT String () m [Render]
 parserEOF = eof >> return [Nil]
 
-
+-- | parser of render(s)
 parserRender :: Stream String m Char => ParsecT String () m [Render]
 parserRender = try parserEOF <|> try parserText <|> try parserD <|> parserVar
+
+-- | render the string with given format and item
+renderFromReformat :: (Monad m, Reformat t, Str t ~ String)
+                   => t   -- ^ item
+                   -> String -- ^ format string 
+                   -> m (Either ParseError String) -- output
+renderFromReformat t str = (concat . step <$>) <$> runParserT parserRender () "render format" str
+  where pair = renderPair t
+        step [] = []
+        step (Text s:rs) = s:step rs
+        step (Var v f:rs) = prt f (pair v):step rs
+        step (Nil:rs) = step rs
+        prt f (I i) = printf f i
+        prt f (R r) = printf f r
+        prt f (S s) = printf f s
+        prt _ N     = ""
+
 
